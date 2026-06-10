@@ -117,7 +117,7 @@ else:
 st.title("🏦 금융안정 2층 모니터링 시스템")
 st.caption(
     "한국은행 2026 통화신용정책 운영방향(금융안정 도모) 기반 | "
-    "AI소프트웨어학부 20233939 백 유 진"
+    "AI소프트웨어학부 포트폴리오 | 백 유 진"
 )
 st.divider()
 
@@ -209,10 +209,11 @@ with tab1:
 
     fig_fsi.update_layout(
         height=420,
-        xaxis_title="날짜", yaxis_title="FSI",
+        xaxis=dict(title="날짜", tickangle=-45),  # x축 라벨을 -45도 회전
+        yaxis_title="FSI",
         legend=dict(orientation="h"),
         hovermode="x unified",
-        margin=dict(l=50, r=30, t=40, b=50),
+        margin=dict(l=50, r=30, t=40, b=80),   # 기울어진 글씨가 잘리지 않도록 하단 여백(b)을 80으로 확대
     )
     st.plotly_chart(fig_fsi, use_container_width=True)
 
@@ -230,9 +231,11 @@ with tab1:
                     marker_color=colors[i % len(colors)]
                 ))
             fig_contrib.update_layout(
-                barmode="stack", height=320,
-                xaxis_title="날짜", yaxis_title="기여도",
+                barmode="stack", height=550,
+                xaxis=dict(title="날짜", tickangle=-20),  # x축 라벨을 -45도 회전
+                yaxis_title="기여도",
                 legend=dict(orientation="h"),
+                margin=dict(b=0),                     # 하단 여백 추가
             )
             st.plotly_chart(fig_contrib, use_container_width=True)
         except Exception:
@@ -442,3 +445,46 @@ with tab3:
         .format({"증감(명)": "{:+,.0f}"}),
         use_container_width=True
     )
+
+footer_html = """
+<style>
+/* 푸터 컨테이너 스타일 설정 */
+.footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: #f8f9fa; /* 밝은 회색 배경 (다크모드 지원을 원하면 transparent 추천) */
+    color: #6c757d;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 13px;
+    border-top: 1px solid #dee2e6;
+    z-index: 999; /* 다른 요소들보다 항상 위에 표시되도록 설정 */
+}
+
+/* 다크 모드일 때의 색상 처리 (Streamlit 테마 자동 대응) */
+@media (prefers-color-scheme: dark) {
+    .footer {
+        background-color: #0e1117;
+        color: #fafafa;
+        border-top: 1px solid #333333;
+    }
+}
+
+/* 본문 컨텐츠가 푸터에 가려지지 않도록 하단 여백 추가 */
+.block-container {
+    padding-bottom: 80px !important;
+}
+</style>
+
+<div class="footer">
+    <p style="margin: 0;">
+        ⓒ 2026 <b>금융안정 2층 모니터링 시스템</b> | 
+        Developed by AI소프트웨어학부 20233939 백유진 | 
+        <i>Bank of Korea AX & CBDC Project</i>
+    </p>
+</div>
+"""
+
+st.markdown(footer_html, unsafe_allow_html=True)
