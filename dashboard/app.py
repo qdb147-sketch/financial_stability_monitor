@@ -10,6 +10,8 @@ dashboard/app.py
 """
 
 import sys, os
+import json
+import hashlib
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models"))
 
@@ -35,6 +37,109 @@ st.set_page_config(
     page_icon="🏦",
     initial_sidebar_state="expanded",
 )
+
+# ── 페이지 설정 ──────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="금융안정 2층 모니터링",
+    layout="wide",
+    page_icon="🏦",
+    initial_sidebar_state="expanded",
+)
+
+# ── 푸터 렌더링 함수 (공통 사용) ─────────────────────────────────────────────
+def render_footer():
+    footer_html = """
+    <style>
+    .footer {
+        position: fixed; left: 0; bottom: 0; width: 100%;
+        background-color: #f8f9fa; color: #6c757d; text-align: center;
+        padding: 12px 0; font-size: 13px; border-top: 1px solid #dee2e6; z-index: 999;
+    }
+    @media (prefers-color-scheme: dark) {
+        .footer { background-color: #0e1117; color: #fafafa; border-top: 1px solid #333333; }
+    }
+    .block-container { padding-bottom: 80px !important; }
+    </style>
+    <div class="footer">
+        <p style="margin: 0;">
+            ⓒ 2026 <b>금융안정 2층 모니터링 시스템</b> | 
+            Developed by 백유진 (인제대학교 AI소프트웨어학부) | 
+            <i>Bank of Korea AX & CBDC Project</i>
+        </p>
+    </div>
+    """
+    st.markdown(footer_html, unsafe_allow_html=True)
+
+
+# ── 인증 (로그인/회원가입) 설정 ──────────────────────────────────────────────
+USER_FILE = os.path.join(DATA_DIR, "users.json") # 가입된 계정 정보가 저장될 파일
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def load_users():
+    if not os.path.exists(USER_FILE):
+        return {}
+    with open(USER_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_users(users):
+    with open(USER_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f)
+
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+    st.session_state["username"] = ""
+
+# 로그인되지 않은 상태면 로그인/가입 화면만 보여주고 실행 중단
+if not st.session_state["logged_in"]:
+    st.title("🏦 금융안정 2층 모니터링 시스템")
+    st.markdown("대시보드에 접근하려면 로그인하거나 새로 가입해주세요.")
+    
+    tab_login, tab_signup = st.tabs(["🔑 로그인", "📝 회원가입"])
+    users = load_users()
+    
+    with tab_login:
+        with st.form("login_form"):
+            log_id = st.text_input("아이디")
+            log_pw = st.text_input("비밀번호", type="password")
+            if st.form_submit_button("로그인"):
+                if log_id in users and users[log_id] == hash_password(log_pw):
+                    st.session_state["logged_in"] = True
+                    st.session_state["username"] = log_id
+                    st.rerun() # 화면 새로고침하여 대시보드 렌더링 시작
+                else:
+                    st.error("아이디 또는 비밀번호가 올바르지 않습니다.")
+                    
+    with tab_signup:
+        with st.form("signup_form"):
+            new_id = st.text_input("새 아이디 (3자 이상)")
+            new_pw = st.text_input("새 비밀번호 (4자 이상)", type="password")
+            new_pw_check = st.text_input("비밀번호 확인", type="password")
+            if st.form_submit_button("가입하기"):
+                if new_id in users:
+                    st.error("이미 존재하는 아이디입니다.")
+                elif len(new_id) < 3 or len(new_pw) < 4:
+                    st.error("아이디는 3자 이상, 비밀번호는 4자 이상 입력해주세요.")
+                elif new_pw != new_pw_check:
+                    st.error("비밀번호가 일치하지 않습니다.")
+                else:
+                    users[new_id] = hash_password(new_pw)
+                    save_users(users)
+                    st.success("회원가입이 완료되었습니다! '로그인' 탭에서 접속해주세요.")
+    
+    render_footer() # 로그인 화면 하단에도 푸터 표시
+    st.stop() # 🛑 핵심: 로그인이 안 되어있으면 여기서 코드를 중단하여 기존 대시보드가 안 보이게 함
+
+
+# ── 사이드바 ─────────────────────────────────────────────────────────────────
+def logout():
+    st.session_state["logged_in"] = False
+    st.session_state["username"] = ""
+
+st.sidebar.markdown(f"**👤 환영합니다, {st.session_state['username']}님!**")
+st.sidebar.button("로그아웃", on_click=logout)
+st.sidebar.markdown("---")
 
 # ── 사이드바 ─────────────────────────────────────────────────────────────────
 st.sidebar.title("⚙️ 설정")
@@ -446,45 +551,9 @@ with tab3:
         use_container_width=True
     )
 
-footer_html = """
-<style>
-/* 푸터 컨테이너 스타일 설정 */
-.footer {
-    position: fixed;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    background-color: #f8f9fa; /* 밝은 회색 배경 (다크모드 지원을 원하면 transparent 추천) */
-    color: #6c757d;
-    text-align: center;
-    padding: 12px 0;
-    font-size: 13px;
-    border-top: 1px solid #dee2e6;
-    z-index: 999; /* 다른 요소들보다 항상 위에 표시되도록 설정 */
-}
+# ══════════════════════════════════════════════════════
+# 탭 3 영역 끝
+# ══════════════════════════════════════════════════════
 
-/* 다크 모드일 때의 색상 처리 (Streamlit 테마 자동 대응) */
-@media (prefers-color-scheme: dark) {
-    .footer {
-        background-color: #0e1117;
-        color: #fafafa;
-        border-top: 1px solid #333333;
-    }
-}
-
-/* 본문 컨텐츠가 푸터에 가려지지 않도록 하단 여백 추가 */
-.block-container {
-    padding-bottom: 80px !important;
-}
-</style>
-
-<div class="footer">
-    <p style="margin: 0;">
-        ⓒ 2026 <b>금융안정 2층 모니터링 시스템</b> | 
-        Developed by AI소프트웨어학부 20233939 백유진 | 
-        <i>Bank of Korea AX & CBDC Project</i>
-    </p>
-</div>
-"""
-
-st.markdown(footer_html, unsafe_allow_html=True)
+# ── 푸터 (Footer) ────────────────────────────────────────────────────────────
+render_footer()
